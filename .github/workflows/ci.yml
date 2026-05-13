@@ -114,6 +114,9 @@ jobs:
             just test
           fi
 
+      - name: Run e2e tests
+        run: xvfb-run --auto-servernum just test-e2e
+
       - name: Ensure libs importable
         env:
           SKIP_RUN: "1"

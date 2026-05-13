@@ -45,6 +45,7 @@ runs:
           python3-dev \
           rsync \
           unzip \
+          xvfb \
           zstd
 
     - name: Install rsync (Windows)
