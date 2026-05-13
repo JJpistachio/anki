@@ -18,9 +18,66 @@ wheels:
 check:
     {{ ninja }} pylib qt check
 
-# Run all tests (Rust, Python, TypeScript)
-test:
+# Run all tests (Rust, Python, TypeScript). Pass --coverage to enforce coverage.
+test coverage='':
+    just {{ if coverage == "--coverage" { "coverage" } else { "_test" } }}
+
+# Run coverage for Rust, Python, TypeScript, and Svelte-related Vitest tests
+coverage:
+    just _coverage-rust
+    just _coverage-py
+    just _coverage-ts
+
+# Run Rust tests. Pass --coverage to enforce Rust coverage.
+test-rust coverage='':
+    just {{ if coverage == "--coverage" { "_coverage-rust" } else { "_test-rust" } }}
+
+# Run Python tests. Pass --coverage to enforce pylib and Qt Python coverage.
+test-py coverage='':
+    just {{ if coverage == "--coverage" { "_coverage-py" } else { "_test-py" } }}
+
+# Run TypeScript/Svelte-related Vitest tests. Pass --coverage to enforce Vitest coverage.
+test-ts coverage='':
+    just {{ if coverage == "--coverage" { "_coverage-ts" } else { "_test-ts" } }}
+
+_test:
     {{ ninja }} check:rust_test check:pytest check:vitest
+
+_test-rust:
+    {{ ninja }} check:rust_test
+
+_test-py:
+    {{ ninja }} check:pytest
+
+_test-ts:
+    {{ ninja }} check:vitest
+
+_coverage-rust:
+    mkdir -p out/coverage/rust out/bin
+    test -x out/bin/cargo-llvm-cov || cargo install cargo-llvm-cov --version 0.8.4 --locked --root out
+    ANKI_TEST_MODE=1 out/bin/cargo-llvm-cov --workspace --locked --json --summary-only --output-path out/coverage/rust/coverage-summary.json --fail-under-lines 60
+
+_coverage-py:
+    {{ ninja }} pylib qt
+    just _coverage-py-pylib
+    just _coverage-py-qt
+
+_coverage-py-pylib:
+    mkdir -p out/coverage/python-pylib
+    PYTHONPATH=out/pylib ANKI_TEST_MODE=1 out/pyenv/bin/python -m coverage run --source=pylib/anki --data-file=out/coverage/python-pylib/.coverage -m pytest -p no:cacheprovider pylib/tests
+    out/pyenv/bin/python -m coverage json --data-file=out/coverage/python-pylib/.coverage -o out/coverage/python-pylib/coverage-summary.json
+    out/pyenv/bin/python -m coverage report --data-file=out/coverage/python-pylib/.coverage --fail-under=65
+
+_coverage-py-qt:
+    mkdir -p out/coverage/python-qt
+    PYTHONPATH=pylib:out/pylib:out/qt ANKI_TEST_MODE=1 out/pyenv/bin/python -m coverage run --source=qt/aqt --data-file=out/coverage/python-qt/.coverage -m pytest -p no:cacheprovider qt/tests
+    out/pyenv/bin/python -m coverage json --data-file=out/coverage/python-qt/.coverage -o out/coverage/python-qt/coverage-summary.json
+    out/pyenv/bin/python -m coverage report --data-file=out/coverage/python-qt/.coverage --fail-under=20
+
+_coverage-ts:
+    {{ ninja }} node_modules ts:generated
+    mkdir -p out/coverage/typescript
+    out/extracted/node/bin/yarn vitest:once --coverage.enabled true --coverage.provider=v8 --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.reportsDirectory=../out/coverage/typescript --coverage.thresholds.lines=5
 
 # Check formatting (fast, no build needed)
 fmt:
