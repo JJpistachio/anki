@@ -99,6 +99,12 @@ def main() -> int:
             "ANKIDEV": "1",
             "PYTHONPYCACHEPREFIX": str(REPO_ROOT / "out" / "pycache"),
             "RUST_BACKTRACE": "1",
+            # Headless Qt: the e2e harness only needs mediasrv's HTTP stack,
+            # not a visible window. The offscreen platform plugin renders to
+            # memory and requires no display server.
+            "QT_QPA_PLATFORM": "offscreen",
+            # Flush Python output immediately so Playwright captures it.
+            "PYTHONUNBUFFERED": "1",
         }
         env.pop("QTWEBENGINE_REMOTE_DEBUGGING", None)
         env.pop("QTWEBENGINE_CHROMIUM_FLAGS", None)
