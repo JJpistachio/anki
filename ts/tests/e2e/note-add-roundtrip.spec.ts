@@ -15,11 +15,13 @@ import { bridgeCalls, decodeRequestBody, editableField, rpcUrl } from "./helpers
 test.describe("Note Add Roundtrip", () => {
     test("add note fires addNote RPC, shows toast, resets form", async ({ editor }) => {
         // Step 1: Wire up route interception for addNote BEFORE typing.
-        // Also record all /_anki/* response URLs for later assertions.
-        const seenUrls: string[] = [];
-        editor.on("response", (r) => {
+        // Also record all /_anki/* request URLs for later assertions.
+        const seenRpcCalls: string[] = [];
+        editor.on("request", (r) => {
             const m = r.url().match(/\/_anki\/([^?#]+)/);
-            if (m && r.status() < 400) { seenUrls.push(m[1]); }
+            if (m) {
+                seenRpcCalls.push(m[1]);
+            }
         });
 
         // Body capture happens off the Request returned by waitForRequest below.
@@ -40,13 +42,19 @@ test.describe("Note Add Roundtrip", () => {
 
         // Step 2 (cont.): Wait for the 600ms debounce to settle by waiting for
         // the duplicate-check RPC that the debounce triggers.
-        await editor.waitForRequest(rpcUrl("noteFieldsCheck"), { timeout: 5_000 });
+        const noteFieldsCheckResp = await editor.waitForResponse(
+            rpcUrl("noteFieldsCheck"),
+            {
+                timeout: 5_000,
+            },
+        );
+        expect(noteFieldsCheckResp.status()).toBeLessThan(400);
 
         // Step 3: Assert no updateNotes request fired during typing (add mode only).
-        expect(seenUrls).not.toContain("updateNotes");
+        expect(seenRpcCalls).not.toContain("updateNotes");
 
-        // Step 4: Assert noteFieldsCheck did fire (confirmed by waitForRequest above).
-        expect(seenUrls).toContain("noteFieldsCheck");
+        // Step 4: Assert noteFieldsCheck did fire.
+        expect(seenRpcCalls).toContain("noteFieldsCheck");
 
         // Step 5: Click the Add button. Use exact match to avoid matching
         // "Add tag" in the tag editor.
@@ -56,9 +64,7 @@ test.describe("Note Add Roundtrip", () => {
         const addNoteResp = editor.waitForResponse(rpcUrl("addNote"), {
             timeout: 10_000,
         });
-        await editor
-            .getByRole("button", { name: "Add", exact: true })
-            .click();
+        await editor.getByRole("button", { name: "Add", exact: true }).click();
         const request = await addNoteReq;
         const response = await addNoteResp;
         expect(
