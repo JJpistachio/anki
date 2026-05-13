@@ -4,14 +4,14 @@ Current CI runs Rust, Python, and TypeScript tests, plus lint/type checks. Cover
 
 ## Current Snapshot
 
-Measured locally on May 12, 2026:
+Measured locally on May 13, 2026:
 
 | Stack                           | Test runner                       | Coverage tool      | Current line coverage | POC minimum |
 | ------------------------------- | --------------------------------- | ------------------ | --------------------: | ----------: |
-| Rust workspace                  | `cargo test` via `cargo llvm-cov` | `cargo llvm-cov`   |                62.61% |         60% |
+| Rust workspace                  | `cargo test` via `cargo llvm-cov` | `cargo llvm-cov`   |                62.44% |         60% |
 | Python `pylib/anki`             | `pytest pylib/tests`              | `coverage.py`      |                69.39% |         65% |
-| Python `qt/aqt`                 | `pytest qt/tests`                 | `coverage.py`      |                22.76% |         20% |
-| TypeScript/Svelte-adjacent code | `vitest run`                      | Vitest V8 coverage |                 6.98% |          5% |
+| Python `qt/aqt`                 | `pytest qt/tests`                 | `coverage.py`      |                22.69% |         20% |
+| TypeScript/Svelte-adjacent code | `vitest run`                      | Vitest V8 coverage |                 6.58% |          5% |
 
 The generated reports are written under `out/coverage/`.
 
@@ -24,7 +24,7 @@ The generated reports are written under `out/coverage/`.
 - Python Qt: `coverage.py` over `qt/tests`, minimum `20`.
 - TypeScript/Svelte-adjacent Vitest tests: Vitest V8 coverage, minimum `5`.
 
-Linux pull requests run `just test --coverage` by default in `.github/workflows/ci.yml`. Pushes to `main`, macOS, and Windows keep the existing `just test` behavior for now.
+Linux pull requests run `just test --coverage` by default in `.github/workflows/ci.yml`. The temporary `playwright-poc` push trigger also runs Linux coverage so the fork can validate this POC before the workflow change is reverted. Pushes to `main`, macOS, and Windows keep the existing `just test` behavior for now.
 
 The stack-specific entry points are:
 

@@ -55,7 +55,7 @@ _test-ts:
 _coverage-rust:
     mkdir -p out/coverage/rust out/bin
     test -x out/bin/cargo-llvm-cov || cargo install cargo-llvm-cov --version 0.8.4 --locked --root out
-    ANKI_TEST_MODE=1 out/bin/cargo-llvm-cov --workspace --locked --json --summary-only --output-path out/coverage/rust/coverage-summary.json --fail-under-lines 60
+    ANKI_TEST_MODE=1 out/bin/cargo-llvm-cov llvm-cov --workspace --locked --json --summary-only --output-path out/coverage/rust/coverage-summary.json --fail-under-lines 60
 
 _coverage-py:
     {{ ninja }} pylib qt
