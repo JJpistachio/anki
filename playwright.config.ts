@@ -9,10 +9,9 @@ const MEDIASRV_PORT = process.env.ANKI_API_PORT ?? "40000";
 // overhead (and its exit-250 internal errors in fresh CI environments where
 // the lock-file re-resolution fails).  The launcher script only needs stdlib,
 // and out/pyenv is always present after `just build` or `./ninja pyenv`.
-const PYENV_PYTHON =
-    process.platform === "win32"
-        ? "out\\pyenv\\Scripts\\python.exe"
-        : "out/pyenv/bin/python";
+const PYENV_PYTHON = process.platform === "win32"
+    ? "out\\pyenv\\Scripts\\python.exe"
+    : "out/pyenv/bin/python";
 
 export default defineConfig({
     testDir: "./ts/tests/e2e",
