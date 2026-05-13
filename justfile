@@ -162,7 +162,7 @@ ci branch:
 
 # Run TS Playwright e2e tests against a temporary Anki instance.
 test-e2e *args: _install-playwright-browsers
-    {{ ninja }} ts:generated pylib qt
+    {{ ninja }} pyenv ts:generated pylib qt
     {{ playwright_env }} {{ yarn }} playwright test {{ args }}
 
 # Helpers to get the right commands for the platform
