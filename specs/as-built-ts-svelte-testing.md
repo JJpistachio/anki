@@ -55,7 +55,7 @@ Each of these took digging to discover. None are documented elsewhere in the cod
 
 Each of these caused real test failures during development. Save yourself the debugging:
 
-1. **`waitForResponse(...).body()` returns 0 bytes for non-intercepted fetch responses.** The HTTP response on the wire has a real body (verifiable via `Content-Length`), but Playwright's observation path doesn't reliably expose it. When a test needs to read a response body, intercept via `page.route`, call `route.fetch()` to forward and capture, then `route.fulfill({response})`. See `duplicate-detection.spec.ts` for the pattern.
+1. **`waitForResponse(...).body()` returns 0 bytes for non-intercepted fetch responses.** The HTTP response on the wire has a real body (verifiable via `Content-Length`), but Playwright's observation path doesn't reliably expose it. When a test needs to read a response body, intercept via `page.route`, call `route.fetch()` to forward and capture, then `route.fulfill({response})`. See `captureProtoResponses()` in `helpers.ts` for the reusable form of this pattern.
 
 2. **`waitForRequest(...).postDataBuffer()` is reliable** for request bodies. This is the canonical way to assert on outgoing RPC payloads — e.g. "did the Add click really send a request with `fields[0] == 'Hello World'`".
 
@@ -118,7 +118,7 @@ test("the contract you're protecting", async ({ editor }) => {
 
 Conventions:
 
-- One contract per test. If you need to assert on two related-but-distinct behaviors, write two `test()` blocks under one `test.describe` (see `close-prompt.spec.ts`).
+- One contract per test. If you need to assert on two related-but-distinct behaviors, write two `test()` blocks under one `test.describe` (see `paste-filter.spec.ts`, which tests P→DIV conversion and `<script>` stripping separately).
 - Use the `editor` fixture when you want fields already rendered; use `editorPage` when you need to control when `loadNote()` fires (rare).
 - Use helpers from `ts/tests/e2e/helpers.ts` for field selectors, RPC URL globs, protobuf decoding, mocked protobuf responses, response capture, and synthetic paste events. Do not copy shadow-DOM selectors or `DataTransfer` boilerplate into new specs.
 - Tests share a single Anki collection. If your test mutates state, document it at the top and make the test self-contained (use unique probes, not values another test may have added).
@@ -131,11 +131,10 @@ Each spec is a worked example of one of the patterns above:
 
 - `harness-sanity.spec.ts` — page mounts, bootstrap RPC sequence, route interception works
 - `note-add-roundtrip.spec.ts` — `waitForRequest` + protobuf decode + multi-RPC orchestration
-- `paste-filter.spec.ts` — synthesized `ClipboardEvent` + DOM-only assertion
+- `paste-filter.spec.ts` — synthesized `ClipboardEvent` + DOM/payload assertion (P→DIV conversion, `<script>` stripping)
 - `sticky-field.spec.ts` — hover-then-click + RPC payload + CSS class assertion + bridge-call negative assertion
-- `duplicate-detection.spec.ts` — predicate-driven response-body capture via `route.fetch()`
-- `media-from-url.spec.ts` — fully mocked RPC response + external-host negative check
-- `close-prompt.spec.ts` — two-branch RPC payload assertion (`generic.Bool` with proto3 zero-bytes handling)
+
+`helpers.ts` also ships response-capture (`captureProtoResponses`) and response-mocking (`mockProtoResponse`, `mockEmptyProtoResponse`) utilities. No in-scope spec uses them yet, but they are the foundation for future suites (mocked-response branches, error paths) on this and other mediasrv-served pages.
 
 ## Extending to other mediasrv-served pages
 

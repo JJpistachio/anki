@@ -101,4 +101,50 @@ test.describe("Paste HTML Filter", () => {
         await page.waitForTimeout(500);
         expect(mediaRequests).toHaveLength(0);
     });
+
+    test("pasted <script> tags are stripped by the TS filter", async ({ editor: page }) => {
+        // SCRIPT is absent from tagsAllowedBasic/Extended (ts/lib/html-filter/element.ts),
+        // so filterElementTagsAllowed() falls into its else branch and the element is
+        // unwrapped/removed. filterHTML() also parses into an inert <template>, so the
+        // script never executes. The contract: no <script> element survives into the
+        // field, and nothing reaches the backend on Add.
+
+        const editableLocator = editableField(page, 0);
+        await expect(editableLocator).toBeAttached({ timeout: 10_000 });
+
+        // Sentinel: if the pasted script ever executed, this flag would flip.
+        await page.evaluate(() => {
+            (window as unknown as { __xssRan?: boolean }).__xssRan = false;
+        });
+
+        await editableLocator.click();
+
+        // Paste a benign <p> alongside a <script> so we can assert the safe
+        // content survives (as <div>) while the script is stripped.
+        await pasteData(editableLocator, {
+            "text/html": "<p>Safe Content</p><script>window.__xssRan = true;</script>",
+        });
+
+        await expect(editableLocator).toContainText("Safe Content", { timeout: 5_000 });
+
+        // The <script> tag must not survive in the field, and must not have run.
+        const innerHTML = await editableLocator.evaluate((el) => el.innerHTML);
+        expect(innerHTML).toContain("<div>Safe Content</div>");
+        expect(innerHTML).not.toMatch(/<script/i);
+        expect(
+            await page.evaluate(() => (window as unknown as { __xssRan?: boolean }).__xssRan),
+            "pasted <script> must never execute",
+        ).toBe(false);
+
+        // The stripped script must not reach the backend either.
+        const addNoteReq = page.waitForRequest(rpcUrl("addNote"), { timeout: 10_000 });
+        await page.getByRole("button", { name: "Add", exact: true }).click();
+        await page.waitForResponse(
+            (resp) => resp.url().includes("/_anki/addNote") && resp.status() < 400,
+            { timeout: 10_000 },
+        );
+
+        const decoded = decodeRequestBody(await addNoteReq, AddNoteRequest);
+        expect(decoded.note?.fields[0]).not.toMatch(/<script/i);
+    });
 });
